@@ -83,6 +83,12 @@ class BusinessCreate(BaseModel):
     category: str
     address_full: str
     postcode: str
+    phone_primary: Optional[str] = None
+    website_url: Optional[str] = None
+    has_website: bool = False
+    google_maps_url: Optional[str] = None
+    google_rating: Optional[float] = None
+    google_review_count: Optional[int] = None
 
 
 class BusinessUpdate(BaseModel):
