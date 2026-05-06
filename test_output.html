@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Brick Lane Dental Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root { --brand: #0EA5E9; --bg: #f8fafc; --text: #0f172a; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
+    .banner { background: #e2e8f0; text-align: center; font-size: .9rem; padding: .55rem; }
+    .hero {
+      padding: 5rem 1.25rem 3rem;
+      color: white;
+      background: radial-gradient(circle at top right, #ffffff22, transparent 45%), var(--brand);
+    }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .hero h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.4rem); }
+    .hero p { margin-top: .8rem; max-width: 56ch; opacity: .95; }
+    .card {
+      background: white; border-radius: 16px; padding: 1.25rem; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    }
+    .section { padding: 2.5rem 1.25rem; }
+    .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    ul { margin: 0; padding-left: 1.2rem; line-height: 1.8; }
+    footer { text-align: center; padding: 2rem 1rem; color: #475569; }
+  </style>
+</head>
+<body>
+  <div class="banner">This is a demo website created by OmniCode Creations</div>
+  <header class="hero">
+    <div class="container">
+      <h1>Brick Lane Dental Studio</h1>
+      <p>Trusted dentist specialists serving local customers.</p>
+    </div>
+  </header>
+  <main class="container">
+    <section class="section">
+      <div class="grid">
+        <article class="card">
+          <h2>Services</h2>
+          <ul><li>Dentist consulting</li>
+<li>Dentist installation</li>
+<li>Maintenance and support</li>
+<li>Custom packages</li>
+<li>Free quote and assessment</li></ul>
+        </article>
+        <article class="card">
+          <h2>About</h2>
+          <p>Brick Lane Dental Studio is a trusted dentist business focused on high-quality outcomes and great customer experience.</p>
+        </article>
+        <article class="card">
+          <h2>Contact & Location</h2>
+          <p>101 Brick Lane, London E1 6SE</p>
+        </article>
+      </div>
+    </section>
+  </main>
+  <footer>&copy; Brick Lane Dental Studio. All rights reserved.</footer>
+</body>
+</html>
