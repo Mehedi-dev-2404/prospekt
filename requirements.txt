@@ -6,3 +6,4 @@ supabase
 httpx
 anthropic
 playwright
+gspread
