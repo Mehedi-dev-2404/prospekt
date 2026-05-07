@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     GOOGLE_SHEETS_ID: str
     GOOGLE_CREDENTIALS_PATH: str
 
+    # Gmail API (optional)
+    GMAIL_CREDENTIALS_PATH: Optional[str] = None
+
     # Vercel
     VERCEL_API_TOKEN: str
     VERCEL_TEAM_ID: Optional[str] = None
