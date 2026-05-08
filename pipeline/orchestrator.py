@@ -114,17 +114,16 @@ async def _poll_page_approvals(job_id: str, approved_businesses: list[Business])
     return []
 
 
-async def run_pipeline(location: str, category: str = None) -> dict:
-    job = Job(location=location, category=category, status="created", started_at=datetime.now(timezone.utc))
-
-    try:
-        await asyncio.to_thread(_insert_job_sync, job)
-    except Exception as exc:
-        logger.error("Failed to create initial job row: %s", exc)
-        # Even if DB insert fails, return consistent payload.
-        job.status = "failed"
-        job.error_message = "Failed to create job"
-        return _job_result(job, job.error_message)
+async def run_pipeline(location: str, category: str = None, job: Job = None) -> dict:
+    if job is None:
+        job = Job(location=location, category=category, status="created", started_at=datetime.now(timezone.utc))
+        try:
+            await asyncio.to_thread(_insert_job_sync, job)
+        except Exception as exc:
+            logger.error("Failed to create initial job row: %s", exc)
+            job.status = "failed"
+            job.error_message = "Failed to create job"
+            return _job_result(job, job.error_message)
 
     # Stage: Discovery
     try:
