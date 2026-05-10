@@ -8,7 +8,7 @@ from anthropic import AsyncAnthropic
 from config import settings
 from models.business import Business
 
-MOCK_MODE = True
+MOCK_MODE = False
 
 ANTHROPIC_API_KEY = settings.ANTHROPIC_API_KEY
 CLAUDE_MODEL = "claude-haiku-4-5-20251001"
@@ -151,7 +151,10 @@ async def _infer_with_claude(
         )
 
         raw_text = _extract_text_from_response(response)
-        parsed = json.loads(raw_text)
+        if raw_text.startswith("```"):
+            lines = raw_text.split("\n")
+            raw_text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:]).strip()
+        parsed, _ = json.JSONDecoder().raw_decode(raw_text)
         if not isinstance(parsed, dict):
             raise ValueError("Claude did not return an object")
         return _normalize_context(parsed, business)

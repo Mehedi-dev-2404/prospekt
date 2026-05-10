@@ -6,7 +6,7 @@ from anthropic import AsyncAnthropic
 from config import settings
 from models.business import Business
 
-MOCK_MODE = True
+MOCK_MODE = False
 
 ANTHROPIC_API_KEY = settings.ANTHROPIC_API_KEY
 CLAUDE_MODEL = "claude-sonnet-4-6"
