@@ -47,23 +47,13 @@ async def list_jobs(status: Optional[str] = None) -> list:
 
 
 @router.get("/preview/{business_id}", response_class=HTMLResponse)
-async def preview_business(business_id: UUID) -> HTMLResponse:
-    resp = (
-        supabase.table("businesses")
-        .select("demo_html")
-        .eq("business_id", str(business_id))
-        .single()
-        .execute()
-    )
-    if not resp.data:
+async def preview_page(business_id: str):
+    result = supabase.table("businesses").select("demo_html, business_name").eq("business_id", business_id).single().execute()
+    if not result.data:
         raise HTTPException(status_code=404, detail="Business not found")
-
-    demo_html = resp.data.get("demo_html") or ""
-    if not demo_html.strip():
-        return HTMLResponse(
-            content="<html><body><h2>No preview available yet</h2></body></html>",
-            status_code=200,
-        )
+    demo_html = result.data.get("demo_html")
+    if not demo_html:
+        return HTMLResponse(content="<h1>No preview available yet</h1>", status_code=200)
     return HTMLResponse(content=demo_html, status_code=200)
 
 
