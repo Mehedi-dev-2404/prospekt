@@ -4,6 +4,7 @@ from html import escape
 from anthropic import AsyncAnthropic
 
 from config import settings
+from database import supabase
 from models.business import Business
 
 MOCK_MODE = False
@@ -183,6 +184,9 @@ async def generate_landing_page(business: Business, context: dict) -> str:
     try:
         html = await _generate_with_claude(business, context)
         if html:
+            supabase.table("businesses").update({"demo_html": html}).eq(
+                "business_id", str(business.business_id)
+            ).execute()
             return html
     except Exception as exc:
         logger.error("Landing page generation failed for %s: %s", business.business_name, exc)

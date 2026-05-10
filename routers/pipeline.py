@@ -3,6 +3,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi.responses import HTMLResponse
 
 from database import supabase
 from models.job import Job, JobCreate
@@ -43,6 +44,27 @@ async def list_jobs(status: Optional[str] = None) -> list:
         query = query.eq("status", status)
     resp = query.execute()
     return resp.data or []
+
+
+@router.get("/preview/{business_id}", response_class=HTMLResponse)
+async def preview_business(business_id: UUID) -> HTMLResponse:
+    resp = (
+        supabase.table("businesses")
+        .select("demo_html")
+        .eq("business_id", str(business_id))
+        .single()
+        .execute()
+    )
+    if not resp.data:
+        raise HTTPException(status_code=404, detail="Business not found")
+
+    demo_html = resp.data.get("demo_html") or ""
+    if not demo_html.strip():
+        return HTMLResponse(
+            content="<html><body><h2>No preview available yet</h2></body></html>",
+            status_code=200,
+        )
+    return HTMLResponse(content=demo_html, status_code=200)
 
 
 @router.post("/cancel/{job_id}")
