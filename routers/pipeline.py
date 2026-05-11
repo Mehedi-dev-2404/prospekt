@@ -46,15 +46,18 @@ async def list_jobs(status: Optional[str] = None) -> list:
     return resp.data or []
 
 
-@router.get("/preview/{business_id}", response_class=HTMLResponse)
+@router.get("/preview/{business_id}")
 async def preview_page(business_id: str):
-    result = supabase.table("businesses").select("demo_html, business_name").eq("business_id", business_id).execute()
-    if not result.data or len(result.data) == 0:
-        raise HTTPException(status_code=404, detail="Business not found")
-    demo_html = result.data[0].get("demo_html")
-    if not demo_html:
-        return HTMLResponse(content="<h1>No preview available yet</h1>", status_code=200)
-    return HTMLResponse(content=demo_html, status_code=200)
+    try:
+        resp = supabase.table("businesses").select("demo_html, business_name").eq("business_id", business_id).execute()
+        if not resp.data or len(resp.data) == 0:
+            return HTMLResponse(content="<h1>Business not found</h1>", status_code=404)
+        demo_html = resp.data[0].get("demo_html")
+        if not demo_html:
+            return HTMLResponse(content="<h1>No HTML saved for this business yet</h1>", status_code=200)
+        return HTMLResponse(content=demo_html, status_code=200)
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>Error: {str(e)}</h1>", status_code=500)
 
 
 @router.post("/cancel/{job_id}")
