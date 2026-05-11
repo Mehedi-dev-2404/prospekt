@@ -31,10 +31,10 @@ async def start_pipeline(body: JobCreate, background_tasks: BackgroundTasks) -> 
 
 @router.get("/status/{job_id}")
 async def get_job_status(job_id: UUID) -> dict:
-    resp = supabase.table("jobs").select("*").eq("job_id", str(job_id)).single().execute()
-    if not resp.data:
+    resp = supabase.table("jobs").select("*").eq("job_id", str(job_id)).execute()
+    if not resp.data or len(resp.data) == 0:
         raise HTTPException(status_code=404, detail="Job not found")
-    return resp.data
+    return resp.data[0]
 
 
 @router.get("/jobs")
@@ -48,10 +48,10 @@ async def list_jobs(status: Optional[str] = None) -> list:
 
 @router.get("/preview/{business_id}", response_class=HTMLResponse)
 async def preview_page(business_id: str):
-    result = supabase.table("businesses").select("demo_html, business_name").eq("business_id", business_id).single().execute()
-    if not result.data:
+    result = supabase.table("businesses").select("demo_html, business_name").eq("business_id", business_id).execute()
+    if not result.data or len(result.data) == 0:
         raise HTTPException(status_code=404, detail="Business not found")
-    demo_html = result.data.get("demo_html")
+    demo_html = result.data[0].get("demo_html")
     if not demo_html:
         return HTMLResponse(content="<h1>No preview available yet</h1>", status_code=200)
     return HTMLResponse(content=demo_html, status_code=200)
