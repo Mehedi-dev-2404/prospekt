@@ -1,25 +1,27 @@
+import base64
 import json
 import logging
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
-import httpx
 from anthropic import AsyncAnthropic
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
 
 from config import settings
 from models.business import Business
 
-MOCK_MODE = True
+MOCK_MODE = False
 
 ANTHROPIC_API_KEY = settings.ANTHROPIC_API_KEY
-SENDGRID_API_KEY = settings.SENDGRID_API_KEY
-SENDGRID_FROM_EMAIL = settings.SENDGRID_FROM_EMAIL
+GMAIL_FROM_EMAIL = settings.GMAIL_FROM_EMAIL
 
-CLAUDE_MODEL = "claude-sonnet-4-6"
+CLAUDE_MODEL = "claude-haiku-4-5-20251001"
 SYSTEM_PROMPT = (
     "You are an expert cold email copywriter. You write short, friendly, personalised cold emails "
     "that get replies. Never sound robotic or salesy."
 )
-
-SENDGRID_URL = "https://api.sendgrid.com/v3/mail/send"
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +74,12 @@ async def _draft_email_with_claude(business: Business, context: dict, demo_url: 
         )
 
         raw = _extract_text_from_response(response)
-        data = json.loads(raw)
+        # Strip markdown code fences if present
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[-1]
+            if raw.endswith("```"):
+                raw = raw.rsplit("```", 1)[0]
+        data = json.loads(raw.strip())
         if not isinstance(data, dict):
             return None
 
@@ -87,31 +94,35 @@ async def _draft_email_with_claude(business: Business, context: dict, demo_url: 
         return None
 
 
-async def _send_with_sendgrid(to_email: str, subject: str, body: str) -> bool:
-    payload = {
-        "personalizations": [{"to": [{"email": to_email}]}],
-        "from": {"email": SENDGRID_FROM_EMAIL},
-        "reply_to": {"email": SENDGRID_FROM_EMAIL},
-        "subject": subject,
-        "content": [{"type": "text/plain", "value": body}],
-    }
+def _build_gmail_service():
+    token_json = settings.GMAIL_TOKEN_JSON
+    if not token_json:
+        raise ValueError("GMAIL_TOKEN_JSON env var is not set")
 
-    headers = {"Authorization": f"Bearer {SENDGRID_API_KEY}"}
+    token_data = json.loads(token_json)
+    creds = Credentials.from_authorized_user_info(token_data)
 
+    if creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+
+    return build("gmail", "v1", credentials=creds)
+
+
+def _send_with_gmail(to_email: str, subject: str, body: str) -> bool:
     try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            resp = await client.post(SENDGRID_URL, json=payload, headers=headers)
-            if resp.status_code in (200, 202):
-                return True
+        service = _build_gmail_service()
 
-            logger.error(
-                "SendGrid send failed: status=%s body=%s",
-                resp.status_code,
-                resp.text,
-            )
-            return False
+        message = MIMEMultipart()
+        message["From"] = GMAIL_FROM_EMAIL
+        message["To"] = to_email
+        message["Subject"] = subject
+        message.attach(MIMEText(body, "plain"))
+
+        raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+        service.users().messages().send(userId="me", body={"raw": raw}).execute()
+        return True
     except Exception as exc:
-        logger.error("SendGrid request failed: %s", exc)
+        logger.error("Gmail send failed: %s", exc)
         return False
 
 
@@ -130,7 +141,7 @@ async def send_outreach_email(business: Business, context: dict, demo_url: str) 
         )
         print("=== MOCK OUTREACH EMAIL ===")
         print(f"To: {business.email_primary}")
-        print(f"From: {SENDGRID_FROM_EMAIL}")
+        print(f"From: {GMAIL_FROM_EMAIL}")
         print(f"Subject: {subject}")
         print()
         print(body)
@@ -141,7 +152,7 @@ async def send_outreach_email(business: Business, context: dict, demo_url: str) 
     if not drafted:
         return False
 
-    return await _send_with_sendgrid(
+    return _send_with_gmail(
         to_email=business.email_primary,
         subject=drafted["subject"],
         body=drafted["body"],

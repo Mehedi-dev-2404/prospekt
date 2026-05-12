@@ -20,14 +20,14 @@ class Settings(BaseSettings):
 
     # Gmail API (optional)
     GMAIL_CREDENTIALS_PATH: Optional[str] = None
+    GMAIL_TOKEN_JSON: Optional[str] = None
 
     # Vercel
     VERCEL_API_TOKEN: str
     VERCEL_TEAM_ID: Optional[str] = None
 
-    # Email (SendGrid)
-    SENDGRID_API_KEY: str
-    SENDGRID_FROM_EMAIL: str
+    # Email (Gmail)
+    GMAIL_FROM_EMAIL: str
 
     # Slack
     SLACK_WEBHOOK_URL: str

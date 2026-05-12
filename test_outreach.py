@@ -1,48 +1,57 @@
 import asyncio
+import logging
 
+from config import settings
 from models.business import Business
 from pipeline.outreach import send_outreach_email
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
 
 def main() -> None:
     business = Business(
-        business_name="Brick Lane Dental Studio",
-        category="dentist",
-        address_full="101 Brick Lane, London E1 6SE, UK",
-        postcode="E1 6SE",
+        business_name="403 Barber Lane Brixton",
+        category="barbershop",
+        address_full="403 Coldharbour Ln, London SW9 8LQ",
+        postcode="SW9 8LQ",
+        email_primary=settings.GMAIL_FROM_EMAIL,
         has_website=True,
-        website_url="https://example.com",
-        email_primary="owner@example.com",
+        website_url="https://www.403barberlane.com",
+        google_rating=5.0,
+        google_review_count=499,
     )
 
-    # Fake context (based on test_scraper output shape)
     context = {
-        "business_name": "Brick Lane Dental Studio",
-        "tagline": "Friendly dental care in the heart of East London.",
+        "business_name": "403 Barber Lane Brixton",
+        "category": "barbershop",
+        "location": "403 Coldharbour Ln, London SW9 8LQ",
+        "tagline": "Precision cuts and fresh fades in the heart of Brixton.",
         "description": (
-            "Brick Lane Dental Studio provides modern dental care with a calm, welcoming approach. "
-            "From routine check-ups to cosmetic treatments, the focus is on comfort and clear communication."
+            "403 Barber Lane is a top-rated barbershop on Coldharbour Lane, Brixton. "
+            "Known for sharp fades, classic cuts, and a welcoming vibe, it holds a perfect "
+            "5-star rating from nearly 500 Google reviews."
         ),
-        "tone": "friendly",
-        "primary_color": "#0EA5E9",
-        "logo_url": "https://example.com/assets/logo.png",
+        "tone": "confident, community-focused",
+        "primary_color": "#1A1A1A",
         "services": [
-            "Dental check-ups",
-            "Hygiene & cleaning",
-            "Teeth whitening",
-            "Cosmetic dentistry",
-            "Emergency appointments",
+            "Skin fades",
+            "Classic cuts",
+            "Line-ups & edge work",
+            "Beard trims",
+            "Hot towel shaves",
         ],
-        "location": "101 Brick Lane, London E1 6SE",
-        "category": "dentist",
+        "google_rating": 5.0,
+        "google_review_count": 499,
     }
 
+    demo_url = "https://403-barber-lane-brixton-5juqnp479.vercel.app"
+
+    print(f"Sending to: {business.email_primary}")
+    print(f"Demo URL:   {demo_url}")
+    print()
+
     ok = asyncio.run(
-        send_outreach_email(
-            business=business,
-            context=context,
-            demo_url="https://demo.example.com/brick-lane-dental-studio",
-        )
+        send_outreach_email(business=business, context=context, demo_url=demo_url)
     )
 
     print(f"Succeeded: {ok}")
