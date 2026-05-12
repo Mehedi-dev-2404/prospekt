@@ -21,3 +21,4 @@ node_modules/
 *.log
 .pytest_cache/
 .cursor/
+gmail_token.json
