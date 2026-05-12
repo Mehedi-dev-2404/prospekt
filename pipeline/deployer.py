@@ -6,7 +6,7 @@ import httpx
 
 from config import settings
 
-MOCK_MODE = True
+MOCK_MODE = False
 
 VERCEL_API_TOKEN = settings.VERCEL_API_TOKEN
 VERCEL_DEPLOYMENTS_URL = "https://api.vercel.com/v13/deployments"
