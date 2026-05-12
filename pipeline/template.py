@@ -1,12 +1,12 @@
-<!DOCTYPE html>
+TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sunrise Plumbing</title>
+<title>{{BUSINESS_NAME}}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--primary:#0ea5e9;--primary-dark:#0ea5e9;--primary-light:#eff6ff;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--white:#fff;--bg:#f8fafc}
+:root{--primary:{{PRIMARY_COLOR}};--primary-dark:{{PRIMARY_COLOR}};--primary-light:#eff6ff;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--white:#fff;--bg:#f8fafc}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);background:var(--white);line-height:1.6}
 .demo-banner{background:#1e293b;color:#94a3b8;text-align:center;padding:10px 16px;font-size:12px;letter-spacing:.04em}
 .demo-banner span{color:#60a5fa;font-weight:600}
@@ -14,7 +14,7 @@ nav{background:var(--white);border-bottom:1px solid var(--border);padding:0 5%;p
 .nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
 .nav-logo{font-size:18px;font-weight:700;color:var(--text);text-decoration:none}
 .nav-cta{background:var(--primary);color:#fff;padding:9px 20px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none}
-.hero{background:linear-gradient(135deg,#1e40af 0%,#0ea5e9 60%,#3b82f6 100%);padding:90px 5%;min-height:500px;display:flex;align-items:center}
+.hero{background:linear-gradient(135deg,#1e40af 0%,{{PRIMARY_COLOR}} 60%,#3b82f6 100%);padding:90px 5%;min-height:500px;display:flex;align-items:center}
 .hero-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
 .hero-text{color:#fff}
 .hero-badge{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#bfdbfe;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:20px}
@@ -71,20 +71,20 @@ footer .footer-credit a{color:#60a5fa}
 </head>
 <body>
 <div class="demo-banner">This is a <span>free demo website</span> built for you by OmniCode Creations — reply to find out more</div>
-<nav><div class="nav-inner"><a href="#" class="nav-logo">Sunrise Plumbing</a><a href="#contact" class="nav-cta">Get in touch</a></div></nav>
+<nav><div class="nav-inner"><a href="#" class="nav-logo">{{BUSINESS_NAME}}</a><a href="#contact" class="nav-cta">Get in touch</a></div></nav>
 <section class="hero">
   <div class="hero-inner">
     <div class="hero-text">
-      <div class="hero-badge">Plumbing</div>
-      <h1>Sunrise Plumbing</h1>
-      <p class="hero-tagline">Your trusted plumber, available when you need us most.</p>
+      <div class="hero-badge">{{CATEGORY}}</div>
+      <h1>{{BUSINESS_NAME}}</h1>
+      <p class="hero-tagline">{{TAGLINE}}</p>
       <div class="hero-btns"><a href="#contact" class="btn-white">Contact us</a><a href="#services" class="btn-outline">Our services</a></div>
     </div>
     <div class="hero-visual">
       <div class="hero-card">
-        <div class="hero-card-stat"><div class="hero-card-num">⭐ 4.8</div><div class="hero-card-label">Google rating</div><div class="hero-card-bar"><div class="hero-card-bar-fill" style="width:90%"></div></div></div>
-        <div class="hero-card-stat"><div class="hero-card-num">127+</div><div class="hero-card-label">Happy customers</div><div class="hero-card-bar"><div class="hero-card-bar-fill" style="width:75%"></div></div></div>
-        <div class="hero-card-stat"><div class="hero-card-num">📍 Manchester</div><div class="hero-card-label">Based in</div></div>
+        <div class="hero-card-stat"><div class="hero-card-num">⭐ {{GOOGLE_RATING}}</div><div class="hero-card-label">Google rating</div><div class="hero-card-bar"><div class="hero-card-bar-fill" style="width:90%"></div></div></div>
+        <div class="hero-card-stat"><div class="hero-card-num">{{GOOGLE_REVIEW_COUNT}}+</div><div class="hero-card-label">Happy customers</div><div class="hero-card-bar"><div class="hero-card-bar-fill" style="width:75%"></div></div></div>
+        <div class="hero-card-stat"><div class="hero-card-num">📍 {{LOCATION}}</div><div class="hero-card-label">Based in</div></div>
       </div>
     </div>
   </div>
@@ -95,12 +95,12 @@ footer .footer-credit a{color:#60a5fa}
       <div class="about-text">
         <div class="section-tag">About us</div>
         <h2 class="section-title">Who we are</h2>
-        <p>Sunrise Plumbing is Manchester's go-to solution for all your plumbing needs, from emergency repairs to complete bathroom installations. With over a decade of experience and a 4.8-star reputation, our skilled team delivers reliable, professional service at competitive prices. We're committed to fixing your problems quickly and thoroughly, so you can get back to enjoying your home.</p>
-        <p>We are proud to serve the Manchester community with professional, reliable service you can count on.</p>
+        <p>{{DESCRIPTION}}</p>
+        <p>We are proud to serve the {{LOCATION}} community with professional, reliable service you can count on.</p>
       </div>
       <div class="about-visual">
-        <div class="about-stat"><div class="about-stat-num">4.8★</div><div class="about-stat-label">Rating</div></div>
-        <div class="about-stat"><div class="about-stat-num">127+</div><div class="about-stat-label">Reviews</div></div>
+        <div class="about-stat"><div class="about-stat-num">{{GOOGLE_RATING}}★</div><div class="about-stat-label">Rating</div></div>
+        <div class="about-stat"><div class="about-stat-num">{{GOOGLE_REVIEW_COUNT}}+</div><div class="about-stat-label">Reviews</div></div>
         <div class="about-stat"><div class="about-stat-num">Local</div><div class="about-stat-label">Business</div></div>
         <div class="about-stat"><div class="about-stat-num">Trusted</div><div class="about-stat-label">Service</div></div>
       </div>
@@ -113,11 +113,11 @@ footer .footer-credit a{color:#60a5fa}
     <h2 class="section-title">Our services</h2>
     <p class="section-sub">Everything you need, all in one place.</p>
     <div class="services-grid">
-      <div class="service-card"><div class="service-icon">✦</div><div class="service-name">Emergency Repairs</div><div class="service-desc">Professional service tailored to your needs.</div></div>
-      <div class="service-card"><div class="service-icon">✦</div><div class="service-name">Boiler Installation</div><div class="service-desc">Professional service tailored to your needs.</div></div>
-      <div class="service-card"><div class="service-icon">✦</div><div class="service-name">Drain Unblocking</div><div class="service-desc">Professional service tailored to your needs.</div></div>
-      <div class="service-card"><div class="service-icon">✦</div><div class="service-name">Bathroom Fitting</div><div class="service-desc">Professional service tailored to your needs.</div></div>
-      <div class="service-card"><div class="service-icon">✦</div><div class="service-name">Leak Detection</div><div class="service-desc">Professional service tailored to your needs.</div></div>
+      <div class="service-card"><div class="service-icon">✦</div><div class="service-name">{{SERVICE_1}}</div><div class="service-desc">Professional service tailored to your needs.</div></div>
+      <div class="service-card"><div class="service-icon">✦</div><div class="service-name">{{SERVICE_2}}</div><div class="service-desc">Professional service tailored to your needs.</div></div>
+      <div class="service-card"><div class="service-icon">✦</div><div class="service-name">{{SERVICE_3}}</div><div class="service-desc">Professional service tailored to your needs.</div></div>
+      <div class="service-card"><div class="service-icon">✦</div><div class="service-name">{{SERVICE_4}}</div><div class="service-desc">Professional service tailored to your needs.</div></div>
+      <div class="service-card"><div class="service-icon">✦</div><div class="service-name">{{SERVICE_5}}</div><div class="service-desc">Professional service tailored to your needs.</div></div>
     </div>
   </div>
 </section>
@@ -129,9 +129,9 @@ footer .footer-credit a{color:#60a5fa}
         <h2 class="section-title">Get in touch</h2>
         <p class="section-sub">Ready to work with us? We'd love to hear from you.</p>
         <div class="contact-info">
-          <div class="contact-item"><div class="contact-icon">📍</div><div><div class="contact-label">Address</div><div class="contact-value">42 High Street, Manchester, M1 2AB</div></div></div>
-          <div class="contact-item"><div class="contact-icon">📞</div><div><div class="contact-label">Phone</div><div class="contact-value">0161 123 4567</div></div></div>
-          <div class="contact-item"><div class="contact-icon">✉️</div><div><div class="contact-label">Email</div><div class="contact-value">hello@sunriseplumbing.co.uk</div></div></div>
+          <div class="contact-item"><div class="contact-icon">📍</div><div><div class="contact-label">Address</div><div class="contact-value">{{ADDRESS}}</div></div></div>
+          <div class="contact-item"><div class="contact-icon">📞</div><div><div class="contact-label">Phone</div><div class="contact-value">{{PHONE}}</div></div></div>
+          <div class="contact-item"><div class="contact-icon">✉️</div><div><div class="contact-label">Email</div><div class="contact-value">{{EMAIL}}</div></div></div>
         </div>
       </div>
       <div class="contact-form">
@@ -144,9 +144,9 @@ footer .footer-credit a{color:#60a5fa}
   </div>
 </section>
 <footer>
-  <div class="footer-name">Sunrise Plumbing</div>
-  <p>42 High Street, Manchester, M1 2AB</p>
+  <div class="footer-name">{{BUSINESS_NAME}}</div>
+  <p>{{ADDRESS}}</p>
   <p class="footer-credit">Demo website by <a href="#">OmniCode Creations</a></p>
 </footer>
 </body>
-</html>
+</html>"""

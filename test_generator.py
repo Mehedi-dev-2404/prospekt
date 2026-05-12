@@ -1,28 +1,42 @@
 import asyncio
+from uuid import uuid4
 
 from models.business import Business
 from pipeline.generator import generate_landing_page
-from pipeline.scraper import scrape_business_context
 
 
-def main() -> None:
+async def main():
     business = Business(
-        business_name="Brick Lane Dental Studio",
-        category="dentist",
-        address_full="101 Brick Lane, London E1 6SE",
-        postcode="E1 6SE",
-        has_website=True,
-        website_url="https://example.com",
+        business_id=uuid4(),
+        business_name="Sunrise Plumbing",
+        category="Plumbing",
+        address_full="42 High Street, Manchester, M1 2AB",
+        postcode="M1 2AB",
+        phone_primary="0161 123 4567",
+        email_primary="hello@sunriseplumbing.co.uk",
+        google_rating=4.8,
+        google_review_count=127,
     )
 
-    context = asyncio.run(scrape_business_context(business))
-    html = asyncio.run(generate_landing_page(business, context))
+    context = {
+        "services": [
+            "Emergency Repairs",
+            "Boiler Installation",
+            "Drain Unblocking",
+            "Bathroom Fitting",
+            "Leak Detection",
+        ],
+        "primary_color": "#0ea5e9",
+        "tone": "friendly and professional",
+    }
+
+    html = await generate_landing_page(business, context)
 
     with open("test_output.html", "w", encoding="utf-8") as f:
         f.write(html)
 
-    print("Done — open test_output.html to preview")
+    print("Done. Output saved to test_output.html")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
