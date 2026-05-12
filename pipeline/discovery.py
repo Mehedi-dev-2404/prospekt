@@ -8,7 +8,7 @@ import httpx
 from config import settings
 from models.business import BusinessCreate
 
-MOCK_MODE = True
+MOCK_MODE = False
 
 GOOGLE_PLACES_API_KEY = settings.GOOGLE_PLACES_API_KEY
 TEXT_SEARCH_URL = "https://maps.googleapis.com/maps/api/place/textsearch/json"
