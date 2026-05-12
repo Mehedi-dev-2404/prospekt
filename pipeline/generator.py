@@ -163,7 +163,7 @@ async def _generate_with_claude(business: Business, context: dict) -> str:
     client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
     response = await client.messages.create(
         model=CLAUDE_MODEL,
-        max_tokens=2500,
+        max_tokens=4096,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_prompt}],
     )
@@ -174,6 +174,8 @@ async def _generate_with_claude(business: Business, context: dict) -> str:
             html_parts.append(getattr(block, "text", ""))
 
     html = "\n".join(part for part in html_parts if part).strip()
+    if not html.rstrip().endswith("</html>"):
+        html += "\n</body></html>"
     return html
 
 
