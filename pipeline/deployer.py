@@ -79,7 +79,15 @@ async def deploy_landing_page(business_name: str, html: str) -> str | None:
 
             for attempt in range(10):
                 status_response = await client.get(deployment_status_url, headers=headers)
-                status_response.raise_for_status()
+                if not status_response.is_success:
+                    logger.error(
+                        "Vercel status poll failed [%s] on attempt %d for '%s': %s",
+                        status_response.status_code,
+                        attempt + 1,
+                        business_name,
+                        status_response.text,
+                    )
+                    return None
                 status_payload = status_response.json()
 
                 ready_state = status_payload.get("readyState")
