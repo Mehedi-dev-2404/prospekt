@@ -46,25 +46,36 @@ async def deploy_landing_page(business_name: str, html: str) -> str | None:
         "files": [{"file": "index.html", "data": html}],
         "projectSettings": {"framework": None},
         "target": "production",
+        "public": True,
+        "deploymentProtection": "none",
     }
 
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
+            logger.info("Creating Vercel deployment for '%s' (slug: %s).", business_name, slug)
             create_response = await client.post(
                 VERCEL_DEPLOYMENTS_URL,
                 headers=headers,
                 json=payload,
             )
-            create_response.raise_for_status()
+            if not create_response.is_success:
+                logger.error(
+                    "Vercel create deployment failed [%s] for '%s': %s",
+                    create_response.status_code,
+                    business_name,
+                    create_response.text,
+                )
+                return None
             deployment = create_response.json()
 
             deployment_id = deployment.get("id")
             if not deployment_id:
-                logger.error("Vercel deployment response missing id: %s", deployment)
+                logger.error("Vercel deployment response missing id for '%s': %s", business_name, deployment)
                 return None
 
             deployment_url = deployment.get("url")
             deployment_status_url = f"{VERCEL_DEPLOYMENTS_URL}/{deployment_id}"
+            logger.info("Deployment created (id: %s), polling for READY state.", deployment_id)
 
             for attempt in range(10):
                 status_response = await client.get(deployment_status_url, headers=headers)
@@ -73,15 +84,35 @@ async def deploy_landing_page(business_name: str, html: str) -> str | None:
 
                 ready_state = status_payload.get("readyState")
                 deployment_url = status_payload.get("url", deployment_url)
+                logger.info("Attempt %d: readyState=%s url=%s", attempt + 1, ready_state, deployment_url)
 
                 if ready_state == "READY":
-                    if deployment_url:
-                        return _format_url(deployment_url)
-                    logger.error("Deployment READY but URL missing: %s", status_payload)
-                    return None
+                    if not deployment_url:
+                        logger.error("Deployment READY but URL missing for '%s': %s", business_name, status_payload)
+                        return None
+
+                    # Disable SSO/password protection on the project
+                    patch_url = f"https://api.vercel.com/v9/projects/{slug}"
+                    patch_payload = {
+                        "ssoProtection": None,
+                        "passwordProtection": None,
+                        "deploymentProtection": "none",
+                    }
+                    patch_response = await client.patch(patch_url, headers=headers, json=patch_payload)
+                    if not patch_response.is_success:
+                        logger.error(
+                            "Failed to disable protection on project '%s' [%s]: %s",
+                            slug,
+                            patch_response.status_code,
+                            patch_response.text,
+                        )
+                    else:
+                        logger.info("Protection disabled for project '%s'.", slug)
+
+                    return _format_url(deployment_url)
 
                 if ready_state == "ERROR":
-                    logger.error("Vercel deployment failed: %s", status_payload)
+                    logger.error("Vercel deployment errored for '%s': %s", business_name, status_payload)
                     return None
 
                 if attempt < 9:
@@ -93,5 +124,5 @@ async def deploy_landing_page(business_name: str, html: str) -> str | None:
             )
             return None
     except Exception as exc:
-        logger.error("Failed to deploy landing page for '%s': %s", business_name, exc)
+        logger.error("Unhandled exception deploying '%s': %s", business_name, exc, exc_info=True)
         return None
