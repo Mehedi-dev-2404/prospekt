@@ -47,7 +47,6 @@ async def deploy_landing_page(business_name: str, html: str) -> str | None:
         "projectSettings": {"framework": None},
         "target": "production",
         "public": True,
-        "deploymentProtection": "none",
     }
 
     try:
