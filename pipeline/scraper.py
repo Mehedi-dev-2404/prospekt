@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import socket
 from typing import Any, Optional
 
 import httpx
@@ -181,6 +182,12 @@ async def _infer_with_claude(
 
 
 async def scrape_business_context(business: Business) -> dict:
+    try:
+        socket.getaddrinfo("google.com", 80)
+        logger.info("DNS resolution working")
+    except Exception as e:
+        logger.error(f"DNS resolution failed: {e}")
+
     if MOCK_MODE:
         return _mock_context(business)
 
