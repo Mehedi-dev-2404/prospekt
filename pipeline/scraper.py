@@ -4,23 +4,15 @@ import logging
 import socket
 from typing import Any, Optional
 
-import httpx
 from anthropic import AsyncAnthropic
 
 from config import settings
 from models.business import Business
 
-MOCK_MODE = False
-
 ANTHROPIC_API_KEY = settings.ANTHROPIC_API_KEY
 CLAUDE_MODEL = "claude-haiku-4-5-20251001"
 SYSTEM_PROMPT = (
     "You are a business analyst. Extract structured information from website content."
-)
-USER_AGENT = (
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/124.0.0.0 Safari/537.36"
 )
 
 logger = logging.getLogger(__name__)
@@ -41,43 +33,6 @@ def _minimal_context(business: Business) -> dict:
         "location": business.address_full or business.postcode or "Unknown",
     }
 
-
-def _mock_context(business: Business) -> dict:
-    return {
-        "business_name": business.business_name,
-        "tagline": f"Trusted {business.category} specialists serving local customers.",
-        "description": (
-            f"{business.business_name} is a local {business.category} brand known for reliable service "
-            f"and customer-focused delivery. They emphasize practical outcomes, transparent communication, "
-            "and a polished customer experience."
-        ),
-        "tone": "friendly",
-        "primary_color": "#0EA5E9",
-        "logo_url": "https://example.com/assets/logo.png",
-        "services": [
-            f"{business.category.title()} consulting",
-            f"{business.category.title()} installation",
-            "Maintenance and support",
-            "Custom packages",
-            "Free quote and assessment",
-        ],
-        "location": business.address_full or business.postcode or "London",
-    }
-
-
-async def _fetch_website_html(url: str) -> Optional[str]:
-    try:
-        async with httpx.AsyncClient(
-            timeout=10.0,
-            headers={"User-Agent": USER_AGENT},
-            follow_redirects=True,
-        ) as client:
-            response = await client.get(url)
-            response.raise_for_status()
-            return response.text
-    except Exception as exc:
-        logger.warning("Failed to fetch website HTML for %s: %s", url, exc)
-        return None
 
 
 def _extract_text_from_response(response: object) -> str:
@@ -116,34 +71,25 @@ def _normalize_context(data: dict[str, Any], business: Business) -> dict:
     return merged
 
 
-async def _infer_with_claude(
-    business: Business,
-    html: Optional[str],
-) -> dict:
+async def _infer_with_claude(business: Business) -> dict:
     try:
         client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 
-        if html:
-            truncated_html = html[:3000]
-            user_prompt = (
-                "Extract structured business context from the following website HTML snippet.\n"
-                "Return ONLY a JSON object with exactly these keys:\n"
-                "business_name, tagline, description, tone, primary_color, logo_url, services, location.\n\n"
-                f"Business hint name: {business.business_name}\n"
-                f"Business hint category: {business.category}\n\n"
-                "HTML snippet:\n"
-                f"{truncated_html}"
-            )
-        else:
-            user_prompt = (
-                "No website HTML is available. Infer structured business context from the following details.\n"
-                "Return ONLY a JSON object with exactly these keys:\n"
-                "business_name, tagline, description, tone, primary_color, logo_url, services, location.\n\n"
-                f"Business name: {business.business_name}\n"
-                f"Category: {business.category}\n"
-                f"Address: {business.address_full}\n"
-                f"Postcode: {business.postcode}"
-            )
+        rating_info = (
+            f"Google rating: {business.google_rating} ({business.review_count} reviews)"
+            if business.google_rating
+            else "Google rating: not available"
+        )
+        user_prompt = (
+            "Infer structured business context from the following details.\n"
+            "Return ONLY a JSON object with exactly these keys:\n"
+            "business_name, tagline, description, tone, primary_color, logo_url, services, location.\n\n"
+            f"Business name: {business.business_name}\n"
+            f"Category: {business.category}\n"
+            f"Address: {business.address_full}\n"
+            f"Postcode: {business.postcode}\n"
+            f"{rating_info}"
+        )
 
         last_exc: Optional[Exception] = None
         for attempt in range(1, 4):
@@ -188,15 +134,7 @@ async def scrape_business_context(business: Business) -> dict:
     except Exception as e:
         logger.error(f"DNS resolution failed: {e}")
 
-    if MOCK_MODE:
-        return _mock_context(business)
-
-    html: Optional[str] = None
-    if business.website_url:
-        html = await _fetch_website_html(business.website_url)
-
-    # If fetch fails, we still ask Claude to infer from business metadata.
-    context = await _infer_with_claude(business, html)
+    context = await _infer_with_claude(business)
     if not context:
         return _minimal_context(business)
     return context
