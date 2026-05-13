@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from typing import Any, Optional
@@ -143,23 +144,36 @@ async def _infer_with_claude(
                 f"Postcode: {business.postcode}"
             )
 
-        response = await client.messages.create(
-            model=CLAUDE_MODEL,
-            max_tokens=500,
-            system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_prompt}],
-        )
+        last_exc: Optional[Exception] = None
+        for attempt in range(1, 4):
+            try:
+                response = await client.messages.create(
+                    model=CLAUDE_MODEL,
+                    max_tokens=500,
+                    system=SYSTEM_PROMPT,
+                    messages=[{"role": "user", "content": user_prompt}],
+                )
 
-        raw_text = _extract_text_from_response(response)
-        if raw_text.startswith("```"):
-            lines = raw_text.split("\n")
-            raw_text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:]).strip()
-        parsed, _ = json.JSONDecoder().raw_decode(raw_text)
-        if not isinstance(parsed, dict):
-            raise ValueError("Claude did not return an object")
-        return _normalize_context(parsed, business)
-    except json.JSONDecodeError as exc:
-        logger.error("Failed to parse Claude JSON response for %s: %s", business.business_name, exc)
+                raw_text = _extract_text_from_response(response)
+                if not raw_text:
+                    raise ValueError("Empty response from Claude")
+                if raw_text.startswith("```"):
+                    lines = raw_text.split("\n")
+                    raw_text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:]).strip()
+                parsed, _ = json.JSONDecoder().raw_decode(raw_text)
+                if not isinstance(parsed, dict):
+                    raise ValueError("Claude did not return an object")
+                return _normalize_context(parsed, business)
+            except (json.JSONDecodeError, ValueError) as exc:
+                last_exc = exc
+                logger.warning(
+                    "Claude scrape attempt %d/3 failed for %s: %s",
+                    attempt, business.business_name, exc,
+                )
+                if attempt < 3:
+                    await asyncio.sleep(2)
+
+        logger.error("All Claude scrape attempts failed for %s: %s", business.business_name, last_exc)
         return _minimal_context(business)
     except Exception as exc:
         logger.error("Claude extraction failed for %s: %s", business.business_name, exc)

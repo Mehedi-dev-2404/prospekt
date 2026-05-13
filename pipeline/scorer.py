@@ -1,9 +1,11 @@
 import base64
+import io
 import json
 import logging
 import random
 
 from anthropic import AsyncAnthropic
+from PIL import Image
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from playwright.async_api import async_playwright
 
@@ -44,7 +46,13 @@ async def _capture_screenshot(url: str) -> bytes:
             page = await context.new_page()
 
             await page.goto(url, wait_until="networkidle", timeout=10_000)
-            screenshot_bytes = await page.screenshot(full_page=True, type="png")
+            screenshot_bytes = await page.screenshot(full_page=False)
+
+            img = Image.open(io.BytesIO(screenshot_bytes))
+            img.thumbnail((1280, 800), Image.LANCZOS)
+            output = io.BytesIO()
+            img.save(output, format="JPEG", quality=60)
+            screenshot_bytes = output.getvalue()
 
             await context.close()
             await browser.close()
@@ -83,7 +91,7 @@ async def _score_with_claude(screenshot_bytes: bytes) -> tuple[int, str]:
                             "type": "image",
                             "source": {
                                 "type": "base64",
-                                "media_type": "image/png",
+                                "media_type": "image/jpeg",
                                 "data": image_b64,
                             },
                         },
