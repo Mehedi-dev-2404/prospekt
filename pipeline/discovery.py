@@ -1,7 +1,7 @@
 import logging
 import re
 from typing import Any
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse
 
 import httpx
 
@@ -21,6 +21,17 @@ UK_POSTCODE_PATTERN = re.compile(
     r"\b([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\b",
     re.IGNORECASE,
 )
+
+
+def _guess_email(website_url: str) -> str | None:
+    try:
+        domain = urlparse(website_url).netloc
+        if not domain:
+            return None
+        domain = re.sub(r"^www\.", "", domain)
+        return f"info@{domain}"
+    except Exception:
+        return None
 
 
 def _extract_postcode(address: str) -> str:
@@ -182,7 +193,10 @@ async def discover_businesses(location: str, category: str = None) -> list[Busin
                     if not payload["business_name"] or not payload["address_full"]:
                         continue
 
-                    discovered.append(BusinessCreate(**payload))
+                    business = BusinessCreate(**payload)
+                    if business.email_primary is None and business.website_url:
+                        business.email_primary = _guess_email(business.website_url)
+                    discovered.append(business)
                 except Exception as parse_error:
                     logger.warning(
                         "Skipping business due to parsing failure: %s",

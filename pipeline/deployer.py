@@ -103,7 +103,6 @@ async def deploy_landing_page(business_name: str, html: str) -> str | None:
                     patch_payload = {
                         "ssoProtection": None,
                         "passwordProtection": None,
-                        "deploymentProtection": "none",
                     }
                     patch_response = await client.patch(patch_url, headers=headers, json=patch_payload)
                     if not patch_response.is_success:
