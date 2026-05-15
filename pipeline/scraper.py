@@ -76,7 +76,7 @@ async def _infer_with_claude(business: Business) -> dict:
         client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 
         rating_info = (
-            f"Google rating: {business.google_rating} ({business.review_count} reviews)"
+            f"Google rating: {business.google_rating} ({business.google_review_count} reviews)"
             if business.google_rating
             else "Google rating: not available"
         )

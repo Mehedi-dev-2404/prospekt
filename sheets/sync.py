@@ -53,6 +53,10 @@ def _business_to_row(b: Business) -> list[str]:
 
 
 def _sync_businesses_to_sheets_sync(businesses: list[Business], job_id: str) -> bool:
+    if settings.GOOGLE_CREDENTIALS_JSON is None:
+        logger.error("GOOGLE_CREDENTIALS_JSON not set")
+        return False
+
     try:
         import gspread  # type: ignore
 
