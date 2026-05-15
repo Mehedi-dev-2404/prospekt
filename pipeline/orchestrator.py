@@ -163,7 +163,10 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
 
     # Stage: Sync to Sheets / awaiting batch approval
     try:
-        ok = await sync_businesses_to_sheets(businesses, str(job.job_id))
+        print("ABOUT TO CALL SHEETS SYNC", flush=True)
+        result = await sync_businesses_to_sheets(businesses, str(job.job_id))
+        print(f"SHEETS SYNC RESULT: {result}", flush=True)
+        ok = result
         if not ok:
             raise RuntimeError("sync_businesses_to_sheets returned False")
         await _set_job_status(job, "awaiting_batch_approval")

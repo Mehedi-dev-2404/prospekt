@@ -94,6 +94,7 @@ def _sync_businesses_to_sheets_sync(businesses: list[Business], job_id: str) -> 
 
 
 async def sync_businesses_to_sheets(businesses: list[Business], job_id: str) -> bool:
+    print(f"SHEETS SYNC CALLED - job_id={job_id}, businesses={len(businesses)}", flush=True)
     if MOCK_MODE:
         rows = [_business_to_row(b) for b in businesses]
         print("=== MOCK SHEETS SYNC ===")
