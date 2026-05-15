@@ -65,12 +65,11 @@ def _sync_businesses_to_sheets_sync(businesses: list[Business], job_id: str) -> 
 
         try:
             ws = sh.worksheet(job_id)
+            sh.del_worksheet(ws)
         except Exception:
-            ws = sh.add_worksheet(title=job_id, rows=1000, cols=len(HEADERS))
-
-        existing = ws.get_all_values()
-        if not existing:
-            ws.append_row(HEADERS)
+            pass
+        ws = sh.add_worksheet(title=job_id, rows=1000, cols=len(HEADERS))
+        ws.append_row(HEADERS)
 
         rows = [_business_to_row(b) for b in businesses]
         if rows:
