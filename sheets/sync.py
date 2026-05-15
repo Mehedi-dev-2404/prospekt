@@ -53,6 +53,10 @@ def _business_to_row(b: Business) -> list[str]:
 
 
 def _sync_businesses_to_sheets_sync(businesses: list[Business], job_id: str) -> bool:
+    logger.info(f"Starting sheets sync for job {job_id}")
+    logger.info(f"GOOGLE_CREDENTIALS_JSON is set: {bool(settings.GOOGLE_CREDENTIALS_JSON)}")
+    logger.info(f"GOOGLE_SHEETS_ID: {settings.GOOGLE_SHEETS_ID}")
+
     if settings.GOOGLE_CREDENTIALS_JSON is None:
         logger.error("GOOGLE_CREDENTIALS_JSON not set")
         return False
@@ -61,19 +65,27 @@ def _sync_businesses_to_sheets_sync(businesses: list[Business], job_id: str) -> 
         import gspread  # type: ignore
 
         gc = gspread.service_account_from_dict(json.loads(settings.GOOGLE_CREDENTIALS_JSON))
+
+        logger.info("Attempting to open spreadsheet...")
         sh = gc.open_by_key(GOOGLE_SHEETS_ID)
+        logger.info(f"Spreadsheet opened successfully: {sh.title}")
 
         try:
             ws = sh.worksheet(job_id)
             sh.del_worksheet(ws)
+            logger.info(f"Deleted existing worksheet: {job_id}")
         except Exception:
             pass
         ws = sh.add_worksheet(title=job_id, rows=1000, cols=len(HEADERS))
+        logger.info(f"Worksheet created: {ws.title}")
+
         ws.append_row(HEADERS)
+        logger.info("Headers written")
 
         rows = [_business_to_row(b) for b in businesses]
         if rows:
             ws.append_rows(rows)
+        logger.info(f"Rows written: {len(businesses)}")
 
         return True
     except Exception as exc:
