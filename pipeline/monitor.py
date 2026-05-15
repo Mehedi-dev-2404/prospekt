@@ -12,7 +12,7 @@ from anthropic import AsyncAnthropic
 from config import settings
 from models.business import Business
 
-MOCK_MODE = True
+MOCK_MODE = False
 
 ANTHROPIC_API_KEY = settings.ANTHROPIC_API_KEY
 SLACK_WEBHOOK_URL = settings.SLACK_WEBHOOK_URL
