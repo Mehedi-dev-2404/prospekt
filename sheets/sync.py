@@ -1,14 +1,13 @@
 import asyncio
+import json
 import logging
-from typing import Iterable
 
 from config import settings
 from models.business import Business
 
-MOCK_MODE = True
+MOCK_MODE = False
 
 GOOGLE_SHEETS_ID = settings.GOOGLE_SHEETS_ID
-GOOGLE_CREDENTIALS_PATH = settings.GOOGLE_CREDENTIALS_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +25,7 @@ HEADERS = [
     "google_rating",
     "google_review_count",
     "campaign_status",
+    "demo_url",
     "approval_status",
     "notes",
 ]
@@ -46,6 +46,7 @@ def _business_to_row(b: Business) -> list[str]:
         "" if b.google_rating is None else str(b.google_rating),
         "" if b.google_review_count is None else str(b.google_review_count),
         b.campaign_status or "",
+        b.demo_url or "",
         "",  # approval_status starts empty for human input
         b.notes or "",
     ]
@@ -55,7 +56,7 @@ def _sync_businesses_to_sheets_sync(businesses: list[Business], job_id: str) -> 
     try:
         import gspread  # type: ignore
 
-        gc = gspread.service_account(filename=GOOGLE_CREDENTIALS_PATH)
+        gc = gspread.service_account_from_dict(json.loads(settings.GOOGLE_CREDENTIALS_JSON))
         sh = gc.open_by_key(GOOGLE_SHEETS_ID)
 
         try:

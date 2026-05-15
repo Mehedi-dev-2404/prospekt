@@ -1,12 +1,12 @@
 import asyncio
+import json
 import logging
 
 from config import settings
 
-MOCK_MODE = True
+MOCK_MODE = False
 
 GOOGLE_SHEETS_ID = settings.GOOGLE_SHEETS_ID
-GOOGLE_CREDENTIALS_PATH = settings.GOOGLE_CREDENTIALS_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ def _poll_approval_status_sync(job_id: str) -> dict:
     try:
         import gspread  # type: ignore
 
-        gc = gspread.service_account(filename=GOOGLE_CREDENTIALS_PATH)
+        gc = gspread.service_account_from_dict(json.loads(settings.GOOGLE_CREDENTIALS_JSON))
         sh = gc.open_by_key(GOOGLE_SHEETS_ID)
         ws = sh.worksheet(job_id)
 

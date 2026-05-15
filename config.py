@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     # Google Sheets API
     GOOGLE_SHEETS_ID: str
     GOOGLE_CREDENTIALS_PATH: str
+    GOOGLE_CREDENTIALS_JSON: Optional[str] = None
 
     # Gmail API (optional)
     GMAIL_CREDENTIALS_PATH: Optional[str] = None
