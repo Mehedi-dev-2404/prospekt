@@ -5,8 +5,6 @@ import logging
 from config import settings
 from models.business import Business
 
-MOCK_MODE = False
-
 GOOGLE_SHEETS_ID = settings.GOOGLE_SHEETS_ID
 
 logger = logging.getLogger(__name__)
@@ -95,7 +93,9 @@ def _sync_businesses_to_sheets_sync(businesses: list[Business], job_id: str) -> 
 
 async def sync_businesses_to_sheets(businesses: list[Business], job_id: str) -> bool:
     print(f"SHEETS SYNC CALLED - job_id={job_id}, businesses={len(businesses)}", flush=True)
-    if MOCK_MODE:
+    print(f"GOOGLE_CREDENTIALS_JSON set: {bool(settings.GOOGLE_CREDENTIALS_JSON)}", flush=True)
+    print(f"GOOGLE_SHEETS_ID: {settings.GOOGLE_SHEETS_ID}", flush=True)
+    if False:
         rows = [_business_to_row(b) for b in businesses]
         print("=== MOCK SHEETS SYNC ===")
         print(f"Worksheet: {job_id}")
@@ -105,4 +105,5 @@ async def sync_businesses_to_sheets(businesses: list[Business], job_id: str) -> 
         print("========================")
         return True
 
+    print("Taking real path", flush=True)
     return await asyncio.to_thread(_sync_businesses_to_sheets_sync, businesses, job_id)
