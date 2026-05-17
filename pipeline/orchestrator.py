@@ -13,7 +13,6 @@ from pipeline.monitor import monitor_replies
 from pipeline.outreach import send_outreach_email
 from pipeline.scorer import score_business
 from pipeline.scraper import scrape_business_context
-from sheets.poller import MOCK_MODE as SHEETS_POLLER_MOCK_MODE
 from sheets.poller import poll_approval_status
 from sheets.sync import sync_businesses_to_sheets
 
@@ -96,7 +95,7 @@ async def _poll_page_approvals(job_id: str, approved_businesses: list[Business])
         return []
 
     # In mock test flow, treat all generated pages as approved quickly.
-    if SHEETS_POLLER_MOCK_MODE:
+    if False:
         await asyncio.sleep(POLL_INTERVAL_SECONDS)
         return approved_businesses
 

@@ -4,8 +4,6 @@ import logging
 
 from config import settings
 
-MOCK_MODE = False
-
 GOOGLE_SHEETS_ID = settings.GOOGLE_SHEETS_ID
 
 logger = logging.getLogger(__name__)
@@ -54,7 +52,7 @@ def _poll_approval_status_sync(job_id: str) -> dict:
 
 
 async def poll_approval_status(job_id: str) -> dict:
-    if MOCK_MODE:
+    if False:
         # Hardcoded IDs for mock behavior (approve first 3, reject the rest).
         ids = [
             "11111111-1111-1111-1111-111111111111",
@@ -65,4 +63,5 @@ async def poll_approval_status(job_id: str) -> dict:
         ]
         return {"approved": ids[:3], "rejected": ids[3:]}
 
+    print("Poller taking real path", flush=True)
     return await asyncio.to_thread(_poll_approval_status_sync, job_id)
