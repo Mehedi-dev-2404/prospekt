@@ -18,6 +18,7 @@ def _poll_approval_status_sync(job_id: str) -> dict:
 
         gc = gspread.service_account_from_dict(json.loads(settings.GOOGLE_CREDENTIALS_JSON))
         sh = gc.open_by_key(GOOGLE_SHEETS_ID)
+        print(f"Poller looking for job_id worksheet: {job_id}", flush=True)
         ws = sh.worksheet(job_id)
 
         values = ws.get_all_values()
@@ -25,6 +26,8 @@ def _poll_approval_status_sync(job_id: str) -> dict:
             return {"approved": [], "rejected": []}
 
         header = values[0]
+        print(f"Worksheet headers: {header}", flush=True)
+        print(f"Total rows found: {len(values[1:])}", flush=True)
         try:
             id_idx = header.index(BUSINESS_ID_COL)
             approval_idx = header.index(APPROVAL_COL)
@@ -32,12 +35,14 @@ def _poll_approval_status_sync(job_id: str) -> dict:
             logger.error("Sheet missing required columns in worksheet %s: %s", job_id, header)
             return {"approved": [], "rejected": []}
 
+        print(f"Approval column index: {approval_idx}", flush=True)
         approved: list[str] = []
         rejected: list[str] = []
 
         for row in values[1:]:
             if len(row) <= max(id_idx, approval_idx):
                 continue
+            print(f"Row approval value: '{row[approval_idx]}'", flush=True)
             business_id = row[id_idx].strip()
             approval = row[approval_idx].strip()
             if approval == "Approve":
