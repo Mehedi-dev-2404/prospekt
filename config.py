@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     # Email (Gmail)
     GMAIL_FROM_EMAIL: str
 
+    # Hunter.io
+    HUNTER_API_KEY: Optional[str] = None
+
     # Slack
     SLACK_WEBHOOK_URL: str
 

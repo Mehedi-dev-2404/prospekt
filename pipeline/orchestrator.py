@@ -3,6 +3,9 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
+import httpx
+
+from config import settings
 from database import supabase
 from models.business import Business, BusinessCreate
 from models.job import Job
@@ -113,6 +116,42 @@ async def _poll_page_approvals(job_id: str, approved_businesses: list[Business])
     return []
 
 
+async def _find_email(business: Business) -> str | None:
+    from urllib.parse import urlparse
+
+    # Try Hunter.io first
+    if settings.HUNTER_API_KEY and business.website_url:
+        try:
+            domain = urlparse(business.website_url).netloc.replace("www.", "")
+            if domain:
+                async with httpx.AsyncClient() as client:
+                    resp = await client.get(
+                        "https://api.hunter.io/v2/domain-search",
+                        params={"domain": domain, "api_key": settings.HUNTER_API_KEY, "limit": 1},
+                        timeout=10,
+                    )
+                    data = resp.json()
+                    emails = data.get("data", {}).get("emails", [])
+                    if emails:
+                        email = emails[0].get("value")
+                        if email:
+                            logger.info("Hunter.io found email for %s: %s", business.business_name, email)
+                            return email
+        except Exception as e:
+            logger.warning("Hunter.io failed for %s: %s", business.business_name, e)
+
+    # Fallback to info@domain
+    if business.website_url:
+        try:
+            domain = urlparse(business.website_url).netloc.replace("www.", "")
+            if domain:
+                return f"info@{domain}"
+        except Exception:
+            pass
+
+    return None
+
+
 async def run_pipeline(location: str, category: str = None, job: Job = None) -> dict:
     if job is None:
         job = Job(location=location, category=category, status="created", started_at=datetime.now(timezone.utc))
@@ -205,6 +244,14 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
         )
     except Exception as exc:
         return await _mark_failed(job, f"Approval polling failed: {exc}")
+
+    # Stage: Find emails for approved businesses (Hunter.io with info@ fallback)
+    for business in approved_businesses:
+        if not business.email_primary:
+            email = await _find_email(business)
+            if email:
+                business.email_primary = email
+                supabase.table("businesses").update({"email_primary": email}).eq("business_id", str(business.business_id)).execute()
 
     # Stage: Generate pages
     generated_pages: dict[str, str] = {}

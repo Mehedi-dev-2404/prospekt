@@ -194,8 +194,6 @@ async def discover_businesses(location: str, category: str = None) -> list[Busin
                         continue
 
                     business = BusinessCreate(**payload)
-                    if business.email_primary is None and business.website_url:
-                        business.email_primary = _guess_email(business.website_url)
                     discovered.append(business)
                 except Exception as parse_error:
                     logger.warning(
