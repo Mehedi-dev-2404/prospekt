@@ -16,8 +16,8 @@ from pipeline.scraper import scrape_business_context
 from sheets.poller import poll_approval_status
 from sheets.sync import sync_businesses_to_sheets
 
-POLL_INTERVAL_SECONDS = 5
-MAX_POLL_ATTEMPTS = 3
+POLL_INTERVAL_SECONDS = 300   # poll every 5 minutes
+MAX_POLL_ATTEMPTS = 288       # 288 x 5 minutes = 24 hours
 
 logger = logging.getLogger(__name__)
 
