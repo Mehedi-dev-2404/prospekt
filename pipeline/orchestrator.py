@@ -133,6 +133,7 @@ async def _find_email(business: Business) -> str | None:
                         timeout=10,
                     )
                     data = resp.json()
+                    print(f"Hunter.io response for {domain}: {data}", flush=True)
                     emails = data.get("data", {}).get("emails", [])
                     if emails:
                         email = emails[0].get("value")
@@ -248,6 +249,7 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
         return await _mark_failed(job, f"Approval polling failed: {exc}")
 
     # Stage: Find emails for approved businesses (Hunter.io with info@ fallback)
+    print(f"Finding emails for {len(approved_businesses)} approved businesses", flush=True)
     for business in approved_businesses:
         if not business.email_primary:
             email = await _find_email(business)
