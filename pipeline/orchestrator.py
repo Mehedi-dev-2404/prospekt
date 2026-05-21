@@ -119,6 +119,8 @@ async def _poll_page_approvals(job_id: str, approved_businesses: list[Business])
 async def _find_email(business: Business) -> str | None:
     from urllib.parse import urlparse
 
+    print(f"_find_email called for {business.business_name}, website: {business.website_url}, HUNTER_KEY set: {bool(settings.HUNTER_API_KEY)}", flush=True)
+
     # Try Hunter.io first
     if settings.HUNTER_API_KEY and business.website_url:
         try:
