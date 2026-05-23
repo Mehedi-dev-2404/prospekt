@@ -19,7 +19,7 @@ from pipeline.scraper import scrape_business_context
 from sheets.poller import poll_approval_status
 from sheets.sync import sync_businesses_to_sheets
 
-POLL_INTERVAL_SECONDS = 300   # poll every 5 minutes
+POLL_INTERVAL_SECONDS = 120   # poll every 2 minutes
 MAX_POLL_ATTEMPTS = 288       # 288 x 5 minutes = 24 hours
 
 logger = logging.getLogger(__name__)
@@ -250,6 +250,9 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
 
     # Stage: Find emails for approved businesses (Hunter.io with info@ fallback)
     print(f"Finding emails for {len(approved_businesses)} approved businesses", flush=True)
+    print(f"approved_businesses type: {type(approved_businesses)}, count: {len(approved_businesses)}", flush=True)
+    for b in approved_businesses:
+        print(f"  - {b.business_name}, email: {b.email_primary}, type: {type(b)}", flush=True)
     for business in approved_businesses:
         if not business.email_primary:
             email = await _find_email(business)
