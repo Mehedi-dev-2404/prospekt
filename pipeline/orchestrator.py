@@ -254,11 +254,10 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
     for b in approved_businesses:
         print(f"  - {b.business_name}, email: {b.email_primary}, type: {type(b)}", flush=True)
     for business in approved_businesses:
-        if not business.email_primary:
-            email = await _find_email(business)
-            if email:
-                business.email_primary = email
-                supabase.table("businesses").update({"email_primary": email}).eq("business_id", str(business.business_id)).execute()
+        email = await _find_email(business)
+        if email:
+            business.email_primary = email
+            supabase.table("businesses").update({"email_primary": email}).eq("business_id", str(business.business_id)).execute()
 
     # Stage: Generate pages
     generated_pages: dict[str, str] = {}
