@@ -313,6 +313,7 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
         if email:
             business.email_primary = email
             supabase.table("businesses").update({"email_primary": email}).eq("business_id", str(business.business_id)).execute()
+            await _update_sheet_row(str(job.job_id), str(business.business_id), {"email_primary": business.email_primary})
 
     # Stage: Generate pages
     generated_pages: dict[str, str] = {}
