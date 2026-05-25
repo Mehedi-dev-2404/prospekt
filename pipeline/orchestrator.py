@@ -25,6 +25,20 @@ MAX_POLL_ATTEMPTS = 288       # 288 x 5 minutes = 24 hours
 logger = logging.getLogger(__name__)
 
 
+async def _slack_notify(message: str) -> None:
+    if not settings.SLACK_WEBHOOK_URL or settings.SLACK_WEBHOOK_URL == "placeholder":
+        return
+    try:
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                settings.SLACK_WEBHOOK_URL,
+                json={"text": message},
+                timeout=5,
+            )
+    except Exception as e:
+        logger.warning(f"Slack notification failed: {e}")
+
+
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -244,6 +258,14 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
         if not ok:
             raise RuntimeError("sync_businesses_to_sheets returned False")
         await _set_job_status(job, "awaiting_batch_approval")
+        await _slack_notify(
+            f"🔍 *Prospekt — Batch Ready for Approval*\n\n"
+            f"Job ID: {job.job_id}\n"
+            f"Location: {location} | Category: {category}\n"
+            f"Businesses found: {job.businesses_found}\n\n"
+            f"👉 Open Google Sheets and approve or reject businesses to continue the pipeline.\n"
+            f"Sheet: https://docs.google.com/spreadsheets/d/{settings.GOOGLE_SHEETS_ID}"
+        )
     except Exception as exc:
         return await _mark_failed(job, f"Sheets sync failed: {exc}")
 
@@ -356,6 +378,16 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
                 await _update_sheet_row(str(job.job_id), str(b.business_id), {"campaign_status": "emailed"})
         job.emails_sent = emails_sent
         await _set_job_status(job, "outreaching", emails_sent=job.emails_sent)
+        await _slack_notify(
+            f"✅ *Prospekt — Outreach Complete*\n\n"
+            f"Job ID: {job.job_id}\n"
+            f"Location: {location} | Category: {category}\n"
+            f"Businesses approved: {job.businesses_approved}\n"
+            f"Pages deployed: {job.pages_built}\n"
+            f"Emails sent: {job.emails_sent}\n\n"
+            f"Google Sheet has been updated with demo URLs and email status.\n"
+            f"Sheet: https://docs.google.com/spreadsheets/d/{settings.GOOGLE_SHEETS_ID}"
+        )
     except Exception as exc:
         return await _mark_failed(job, f"Outreach failed: {exc}")
 

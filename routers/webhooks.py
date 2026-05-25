@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from database import supabase
@@ -58,6 +59,58 @@ async def handle_reply(request: Request) -> dict:
     await monitor_replies(business)
 
     return {"status": "ok"}
+
+
+@router.post("/webhooks/slack")
+async def slack_trigger(
+    background_tasks: BackgroundTasks,
+    text: str = Form(default=""),
+    user_name: str = Form(default="unknown"),
+):
+    if not text.strip():
+        return JSONResponse(content={
+            "response_type": "ephemeral",
+            "text": "Usage: `/prospekt [location] [category]`\nExample: `/prospekt Brixton, London barbershops`",
+        })
+
+    parts = text.strip().rsplit(" ", 1)
+    if len(parts) == 2 and not parts[1].replace(",", "").strip().isdigit():
+        location = parts[0].strip()
+        category = parts[1].strip()
+    else:
+        location = text.strip()
+        category = "local businesses"
+
+    import uuid
+    from models.job import Job
+    from pipeline.orchestrator import run_pipeline
+
+    job_id = str(uuid.uuid4())
+    now = _utc_now_iso()
+
+    supabase.table("jobs").insert({
+        "job_id": job_id,
+        "location": location,
+        "category": category,
+        "status": "created",
+        "created_at": now,
+        "started_at": now,
+        "updated_at": now,
+    }).execute()
+
+    job = Job(job_id=job_id, location=location, category=category)
+    background_tasks.add_task(run_pipeline, location, category, job)
+
+    return JSONResponse(content={
+        "response_type": "in_channel",
+        "text": (
+            f"🚀 *Prospekt pipeline started!*\n"
+            f"*Location:* {location}\n"
+            f"*Category:* {category}\n"
+            f"*Job ID:* `{job_id}`\n\n"
+            f"Businesses will appear in Google Sheets for approval shortly."
+        ),
+    })
 
 
 @router.post("/unsubscribe")
