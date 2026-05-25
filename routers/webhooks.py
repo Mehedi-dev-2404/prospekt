@@ -61,7 +61,7 @@ async def handle_reply(request: Request) -> dict:
     return {"status": "ok"}
 
 
-@router.post("/webhooks/slack")
+@router.post("/slack")
 async def slack_trigger(
     background_tasks: BackgroundTasks,
     text: str = Form(default=""),
