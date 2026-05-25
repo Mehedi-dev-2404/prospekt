@@ -87,6 +87,39 @@ async def _mark_failed(job: Job, error_message: str) -> dict:
     return _job_result(job, error_message)
 
 
+async def _update_sheet_row(job_id: str, business_id: str, updates: dict) -> None:
+    """Update specific columns for a business row in the Google Sheet."""
+    try:
+        import json
+        import gspread
+
+        if not settings.GOOGLE_CREDENTIALS_JSON:
+            return
+
+        creds_dict = json.loads(settings.GOOGLE_CREDENTIALS_JSON)
+        gc = await asyncio.to_thread(gspread.service_account_from_dict, creds_dict)
+        sh = await asyncio.to_thread(gc.open_by_key, settings.GOOGLE_SHEETS_ID)
+
+        try:
+            ws = await asyncio.to_thread(sh.worksheet, job_id)
+        except Exception:
+            return
+
+        headers = await asyncio.to_thread(ws.row_values, 1)
+        all_ids = await asyncio.to_thread(ws.col_values, 1)
+        if business_id not in all_ids:
+            return
+
+        row_idx = all_ids.index(business_id) + 1
+
+        for col_name, value in updates.items():
+            if col_name in headers:
+                col_idx = headers.index(col_name) + 1
+                await asyncio.to_thread(ws.update_cell, row_idx, col_idx, value)
+    except Exception as e:
+        logger.warning(f"Sheet row update failed: {e}")
+
+
 async def _mark_demo_ready_for_review(job_id: str, approved_businesses: list[Business]) -> None:
     # Real Google Sheets update can be added here; in mock mode this keeps the flow visible.
     ids = [str(b.business_id) for b in approved_businesses]
@@ -302,6 +335,7 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
                     str(b.business_id),
                     {"demo_url": deployed_url},
                 )
+                await _update_sheet_row(str(job.job_id), str(b.business_id), {"demo_url": deployed_url})
     except Exception as exc:
         return await _mark_failed(job, f"Deployment failed: {exc}")
 
@@ -319,6 +353,7 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
             if ok:
                 emails_sent += 1
                 emailed_businesses.append(b)
+                await _update_sheet_row(str(job.job_id), str(b.business_id), {"campaign_status": "emailed"})
         job.emails_sent = emails_sent
         await _set_job_status(job, "outreaching", emails_sent=job.emails_sent)
     except Exception as exc:

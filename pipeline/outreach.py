@@ -55,10 +55,13 @@ async def _draft_email_with_claude(business: Business, context: dict, demo_url: 
         "Constraints:\n"
         "- Subject line personalised to their business name and category\n"
         "- Body is 4–5 sentences max\n"
-        "- Mention their business name\n"
+        f"- Use the business name '{business_name}' directly in the email — do NOT use any placeholder syntax like {{{{BUSINESS_NAME}}}}, [BUSINESS_NAME], or similar\n"
+        "- Do NOT use any placeholder syntax like {{{{FIRST_NAME}}}}, {{{{YOUR_NAME}}}}, [NAME], or any other {{{{...}}}} or [[...]] patterns — write the actual values directly\n"
+        "- The recipient's first name is unknown, so open with a friendly greeting like 'Hi there,' or 'Hello,'\n"
         "- Reference their specific location\n"
         "- Include the demo URL naturally\n"
         "- End with a soft CTA\n"
+        "- Sign off as 'The OmniCode Creations Team' — do not use a personal name or placeholder\n"
         "- Include this opt-out line at the bottom exactly:\n"
         "  Not interested? Just reply with 'unsubscribe' and I won't contact you again.\n\n"
         'Return ONLY a JSON object: {"subject": "<string>", "body": "<string>"}'
@@ -87,6 +90,19 @@ async def _draft_email_with_claude(business: Business, context: dict, demo_url: 
         body = str(data.get("body", "")).strip()
         if not subject or not body:
             return None
+
+        # Safety: replace any leftover placeholder patterns Claude may have used
+        import re
+
+        def _fix_placeholders(text: str) -> str:
+            text = re.sub(r"\{\{FIRST_NAME\}\}", "there", text, flags=re.IGNORECASE)
+            text = re.sub(r"\{\{BUSINESS_NAME\}\}", business_name, text, flags=re.IGNORECASE)
+            text = re.sub(r"\{\{YOUR_NAME\}\}", "The OmniCode Creations Team", text, flags=re.IGNORECASE)
+            text = re.sub(r"\{\{[^}]*\}\}", "", text)  # remove any other {{...}}
+            return text
+
+        subject = _fix_placeholders(subject)
+        body = _fix_placeholders(body)
 
         return {"subject": subject, "body": body}
     except Exception as exc:
