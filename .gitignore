@@ -22,3 +22,4 @@ node_modules/
 .pytest_cache/
 .cursor/
 gmail_token.json
+.vercel
