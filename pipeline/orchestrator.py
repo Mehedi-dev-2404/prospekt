@@ -16,8 +16,7 @@ from pipeline.monitor import monitor_replies
 from pipeline.outreach import send_outreach_email
 from pipeline.scorer import score_business
 from pipeline.scraper import scrape_business_context
-from sheets.poller import poll_approval_status
-from sheets.sync import sync_businesses_to_sheets
+from pipeline.approval import poll_batch_approval_status, poll_page_approval_status
 
 POLL_INTERVAL_SECONDS = 120   # poll every 2 minutes
 MAX_POLL_ATTEMPTS = 288       # 288 x 5 minutes = 24 hours
@@ -101,63 +100,15 @@ async def _mark_failed(job: Job, error_message: str) -> dict:
     return _job_result(job, error_message)
 
 
-async def _update_sheet_row(job_id: str, business_id: str, updates: dict) -> None:
-    """Update specific columns for a business row in the Google Sheet."""
-    try:
-        import json
-        import gspread
-
-        if not settings.GOOGLE_CREDENTIALS_JSON:
-            return
-
-        creds_dict = json.loads(settings.GOOGLE_CREDENTIALS_JSON)
-        gc = await asyncio.to_thread(gspread.service_account_from_dict, creds_dict)
-        sh = await asyncio.to_thread(gc.open_by_key, settings.GOOGLE_SHEETS_ID)
-
-        try:
-            ws = await asyncio.to_thread(sh.worksheet, job_id)
-        except Exception:
-            return
-
-        headers = await asyncio.to_thread(ws.row_values, 1)
-        all_ids = await asyncio.to_thread(ws.col_values, 1)
-        if business_id not in all_ids:
-            return
-
-        row_idx = all_ids.index(business_id) + 1
-
-        for col_name, value in updates.items():
-            if col_name in headers:
-                col_idx = headers.index(col_name) + 1
-                await asyncio.to_thread(ws.update_cell, row_idx, col_idx, value)
-    except Exception as e:
-        logger.warning(f"Sheet row update failed: {e}")
-
-
-async def _mark_demo_ready_for_review(job_id: str, approved_businesses: list[Business]) -> None:
-    # Real Google Sheets update can be added here; in mock mode this keeps the flow visible.
-    ids = [str(b.business_id) for b in approved_businesses]
-    print(f"[Sheets] job={job_id} demo_url -> READY FOR REVIEW for {ids}")
-
-
-async def _poll_page_approvals(job_id: str, approved_businesses: list[Business]) -> list[Business]:
+async def _poll_page_approvals(approved_businesses: list[Business]) -> list[Business]:
     if not approved_businesses:
         return []
 
-    # In mock test flow, treat all generated pages as approved quickly.
-    if False:
-        await asyncio.sleep(POLL_INTERVAL_SECONDS)
-        return approved_businesses
-
-    # Placeholder real flow: bounded polling using existing sheet poller result.
-    # (Can be swapped with dedicated demo_approved polling once that sheet column flow is wired.)
-    approved_ids_target = {str(b.business_id) for b in approved_businesses}
+    business_ids = [str(b.business_id) for b in approved_businesses]
     for attempt in range(MAX_POLL_ATTEMPTS):
-        result = await poll_approval_status(job_id)
-        approved_ids = set(result.get("approved", []))
-        matched = approved_ids_target.intersection(approved_ids)
-        if matched:
-            return [b for b in approved_businesses if str(b.business_id) in matched]
+        approved_ids = set(await poll_page_approval_status(business_ids))
+        if approved_ids:
+            return [b for b in approved_businesses if str(b.business_id) in approved_ids]
         if attempt < MAX_POLL_ATTEMPTS - 1:
             await asyncio.sleep(POLL_INTERVAL_SECONDS)
     return []
@@ -217,7 +168,7 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
     try:
         await _set_job_status(job, "discovering")
         discovered = await discover_businesses(location, category)
-        businesses: list[Business] = [Business(**b.model_dump()) for b in discovered]
+        businesses: list[Business] = [Business(**b.model_dump(), job_id=job.job_id) for b in discovered]
         job.businesses_found = len(businesses)
         await _set_job_status(job, "discovering", businesses_found=job.businesses_found)
     except Exception as exc:
@@ -249,25 +200,19 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
     except Exception as exc:
         return await _mark_failed(job, f"Saving businesses failed: {exc}")
 
-    # Stage: Sync to Sheets / awaiting batch approval
+    # Stage: Awaiting batch approval (reviewed in the Prospekt dashboard)
     try:
-        print("ABOUT TO CALL SHEETS SYNC", flush=True)
-        result = await sync_businesses_to_sheets(businesses, str(job.job_id))
-        print(f"SHEETS SYNC RESULT: {result}", flush=True)
-        ok = result
-        if not ok:
-            raise RuntimeError("sync_businesses_to_sheets returned False")
         await _set_job_status(job, "awaiting_batch_approval")
+        dashboard_link = f"{settings.DASHBOARD_URL}/jobs/{job.job_id}" if settings.DASHBOARD_URL else f"job {job.job_id}"
         await _slack_notify(
             f"🔍 *Prospekt — Batch Ready for Approval*\n\n"
             f"Job ID: {job.job_id}\n"
             f"Location: {location} | Category: {category}\n"
             f"Businesses found: {job.businesses_found}\n\n"
-            f"👉 Open Google Sheets and approve or reject businesses to continue the pipeline.\n"
-            f"Sheet: https://docs.google.com/spreadsheets/d/{settings.GOOGLE_SHEETS_ID}"
+            f"👉 Review and approve/reject businesses in the dashboard: {dashboard_link}"
         )
     except Exception as exc:
-        return await _mark_failed(job, f"Sheets sync failed: {exc}")
+        return await _mark_failed(job, f"Awaiting batch approval setup failed: {exc}")
 
     # Stage: Poll batch approvals
     approved_businesses: list[Business] = []
@@ -275,7 +220,7 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
     try:
         polled = {"approved": [], "rejected": []}
         for attempt in range(MAX_POLL_ATTEMPTS):
-            polled = await poll_approval_status(str(job.job_id))
+            polled = await poll_batch_approval_status(str(job.job_id))
             approved_ids = set(polled.get("approved", []))
             rejected_ids = set(polled.get("rejected", []))
             if approved_ids or rejected_ids:
@@ -286,11 +231,6 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
         id_to_business = {str(b.business_id): b for b in businesses}
         approved_businesses = [id_to_business[i] for i in polled.get("approved", []) if i in id_to_business]
         rejected_businesses = [id_to_business[i] for i in polled.get("rejected", []) if i in id_to_business]
-
-        # Mock poller returns hardcoded IDs; keep tests moving with deterministic fallback.
-        if not approved_businesses and not rejected_businesses and businesses:
-            approved_businesses = businesses[:3]
-            rejected_businesses = businesses[3:]
 
         job.businesses_approved = len(approved_businesses)
         job.businesses_rejected = len(rejected_businesses)
@@ -313,7 +253,6 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
         if email:
             business.email_primary = email
             supabase.table("businesses").update({"email_primary": email}).eq("business_id", str(business.business_id)).execute()
-            await _update_sheet_row(str(job.job_id), str(business.business_id), {"email_primary": business.email_primary})
 
     # Stage: Generate pages
     generated_pages: dict[str, str] = {}
@@ -327,17 +266,16 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
     except Exception as exc:
         return await _mark_failed(job, f"Page generation failed: {exc}")
 
-    # Stage: Sync page review state / awaiting page approval
+    # Stage: Awaiting page approval
     try:
-        await _mark_demo_ready_for_review(str(job.job_id), approved_businesses)
         await _set_job_status(job, "awaiting_page_approval")
     except Exception as exc:
-        return await _mark_failed(job, f"Page review sync failed: {exc}")
+        return await _mark_failed(job, f"Page review setup failed: {exc}")
 
     # Stage: Poll page approvals
     page_approved_businesses: list[Business] = []
     try:
-        page_approved_businesses = await _poll_page_approvals(str(job.job_id), approved_businesses)
+        page_approved_businesses = await _poll_page_approvals(approved_businesses)
         job.pages_approved = len(page_approved_businesses)
         await _set_job_status(job, "awaiting_page_approval", pages_approved=job.pages_approved)
     except Exception as exc:
@@ -358,7 +296,6 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
                     str(b.business_id),
                     {"demo_url": deployed_url},
                 )
-                await _update_sheet_row(str(job.job_id), str(b.business_id), {"demo_url": deployed_url})
     except Exception as exc:
         return await _mark_failed(job, f"Deployment failed: {exc}")
 
@@ -376,9 +313,14 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
             if ok:
                 emails_sent += 1
                 emailed_businesses.append(b)
-                await _update_sheet_row(str(job.job_id), str(b.business_id), {"campaign_status": "emailed"})
+                await asyncio.to_thread(
+                    _update_business_sync,
+                    str(b.business_id),
+                    {"campaign_status": "emailed"},
+                )
         job.emails_sent = emails_sent
         await _set_job_status(job, "outreaching", emails_sent=job.emails_sent)
+        dashboard_link = f"{settings.DASHBOARD_URL}/jobs/{job.job_id}" if settings.DASHBOARD_URL else f"job {job.job_id}"
         await _slack_notify(
             f"✅ *Prospekt — Outreach Complete*\n\n"
             f"Job ID: {job.job_id}\n"
@@ -386,8 +328,7 @@ async def run_pipeline(location: str, category: str = None, job: Job = None) -> 
             f"Businesses approved: {job.businesses_approved}\n"
             f"Pages deployed: {job.pages_built}\n"
             f"Emails sent: {job.emails_sent}\n\n"
-            f"Google Sheet has been updated with demo URLs and email status.\n"
-            f"Sheet: https://docs.google.com/spreadsheets/d/{settings.GOOGLE_SHEETS_ID}"
+            f"View details in the dashboard: {dashboard_link}"
         )
     except Exception as exc:
         return await _mark_failed(job, f"Outreach failed: {exc}")

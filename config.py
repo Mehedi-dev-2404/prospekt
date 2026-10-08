@@ -14,10 +14,8 @@ class Settings(BaseSettings):
     # Google Places API
     GOOGLE_PLACES_API_KEY: str
 
-    # Google Sheets API
-    GOOGLE_SHEETS_ID: str
-    GOOGLE_CREDENTIALS_PATH: str
-    GOOGLE_CREDENTIALS_JSON: Optional[str] = None
+    # Dashboard (Next.js app replacing Google Sheets for approvals/monitoring)
+    DASHBOARD_URL: Optional[str] = None
 
     # Gmail API (optional)
     GMAIL_CREDENTIALS_PATH: Optional[str] = None

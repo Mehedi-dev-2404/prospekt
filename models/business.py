@@ -25,6 +25,7 @@ def utc_now() -> datetime:
 class Business(BaseModel):
     # Core identity
     business_id: UUID = Field(default_factory=uuid4)
+    job_id: Optional[UUID] = None
     business_name: str
     category: str
     address_full: str
@@ -61,6 +62,7 @@ class Business(BaseModel):
     demo_approved: bool = False
     campaign_status: CampaignStatus = "pending"
     assigned_rep: Optional[str] = None
+    approval_status: Optional[Literal["approved", "rejected"]] = None
 
     # Email tracking
     email_1_sent_at: Optional[datetime] = None
@@ -79,6 +81,7 @@ class Business(BaseModel):
 
 
 class BusinessCreate(BaseModel):
+    job_id: Optional[UUID] = None
     business_name: str
     category: str
     address_full: str
@@ -95,6 +98,7 @@ class BusinessCreate(BaseModel):
 class BusinessUpdate(BaseModel):
     # Core identity
     business_id: Optional[UUID] = None
+    job_id: Optional[UUID] = None
     business_name: Optional[str] = None
     category: Optional[str] = None
     address_full: Optional[str] = None
@@ -131,6 +135,7 @@ class BusinessUpdate(BaseModel):
     demo_approved: Optional[bool] = None
     campaign_status: Optional[CampaignStatus] = None
     assigned_rep: Optional[str] = None
+    approval_status: Optional[Literal["approved", "rejected"]] = None
 
     # Email tracking
     email_1_sent_at: Optional[datetime] = None

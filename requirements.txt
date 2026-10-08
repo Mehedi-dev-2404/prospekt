@@ -19,7 +19,6 @@ google-auth-httplib2
 google-auth-oauthlib==1.4.0
 google-api-python-client
 greenlet==3.5.0
-gspread==6.2.1
 h11==0.16.0
 h2==4.3.0
 hpack==4.1.0
