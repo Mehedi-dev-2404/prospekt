@@ -81,7 +81,6 @@ class Business(BaseModel):
 
 
 class BusinessCreate(BaseModel):
-    job_id: Optional[UUID] = None
     business_name: str
     category: str
     address_full: str
