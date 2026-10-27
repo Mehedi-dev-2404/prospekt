@@ -83,7 +83,7 @@ export async function getAllBusinesses(): Promise<(Business & { job_location: st
     .select("*, jobs(location)")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((row: any) => ({
+  return (data ?? []).map((row: Business & { jobs: { location: string | null } | null }) => ({
     ...row,
     job_location: row.jobs?.location ?? null,
   }));

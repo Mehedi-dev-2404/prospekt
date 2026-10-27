@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: data.detail ?? "Backend rejected the request" }, { status: res.status });
     }
     return NextResponse.json(data);
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "Could not reach the Prospekt backend" }, { status: 502 });
   }
 }
