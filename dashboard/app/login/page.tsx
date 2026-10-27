@@ -46,6 +46,7 @@ function LoginForm() {
         className="w-full rounded-lg border border-border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-bright"
         placeholder="••••••••"
       />
+      <p className="text-text-muted text-xs mt-2">Hint: 0000</p>
       {error && <p className="text-danger text-sm mt-2">{error}</p>}
       <button
         type="submit"
