@@ -95,9 +95,14 @@ export default function CampaignTracker({ businesses }: { businesses: Row[] }) {
                     <CampaignStatusBadge status={b.campaign_status} />
                   </td>
                   <td className="px-4 py-3">
-                    {b.demo_url ? (
-                      <a href={b.demo_url} target="_blank" rel="noopener noreferrer" className="text-teal text-xs hover:underline">
-                        View →
+                    {b.demo_url || b.has_page ? (
+                      <a
+                        href={b.demo_url ?? `/api/preview/${b.business_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-teal text-xs hover:underline"
+                      >
+                        {b.demo_url ? "View →" : "Preview →"}
                       </a>
                     ) : (
                       <span className="text-text-muted text-xs">—</span>

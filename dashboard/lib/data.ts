@@ -37,6 +37,7 @@ export type Business = {
   google_rating: number | null;
   google_review_count: number | null;
   demo_url: string | null;
+  has_page: boolean;
   demo_approved: boolean;
   campaign_status: string;
   approval_status: "approved" | "rejected" | null;
@@ -47,6 +48,13 @@ export type Business = {
   notes: string | null;
   created_at: string;
 };
+
+type BusinessRow = Omit<Business, "has_page"> & { demo_html: string | null };
+
+// demo_html is large; keep it server-side and expose only whether a page exists.
+function toBusiness({ demo_html, ...rest }: BusinessRow): Business {
+  return { ...rest, has_page: !!demo_html };
+}
 
 export async function getJobs(): Promise<Job[]> {
   const { data, error } = await supabase
@@ -74,7 +82,7 @@ export async function getBusinessesForJob(jobId: string): Promise<Business[]> {
     .eq("job_id", jobId)
     .order("website_score", { ascending: true, nullsFirst: true });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map(toBusiness);
 }
 
 export async function getAllBusinesses(): Promise<(Business & { job_location: string | null })[]> {
@@ -83,10 +91,10 @@ export async function getAllBusinesses(): Promise<(Business & { job_location: st
     .select("*, jobs(location)")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((row: Business & { jobs: { location: string | null } | null }) => ({
-    ...row,
-    job_location: row.jobs?.location ?? null,
-  }));
+  return (data ?? []).map((row: BusinessRow & { jobs: { location: string | null } | null }) => {
+    const { jobs, ...business } = row;
+    return { ...toBusiness(business), job_location: jobs?.location ?? null };
+  });
 }
 
 export async function setApprovalStatus(
@@ -106,4 +114,14 @@ export async function setPageApproval(businessId: string, approved: boolean): Pr
     .update({ demo_approved: approved })
     .eq("business_id", businessId);
   if (error) throw error;
+}
+
+export async function getDemoHtml(businessId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("businesses")
+    .select("demo_html")
+    .eq("business_id", businessId)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.demo_html ?? null;
 }

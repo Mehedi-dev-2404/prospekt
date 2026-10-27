@@ -105,28 +105,31 @@ export default function BusinessTable({ businesses }: { businesses: Business[] }
                     <CampaignStatusBadge status={b.campaign_status} />
                   </td>
                   <td className="px-4 py-3">
-                    {b.demo_url ? (
+                    {b.demo_url || b.has_page ? (
                       <div className="flex flex-col gap-1.5 items-start">
                         <a
-                          href={b.demo_url}
+                          href={b.demo_url ?? `/api/preview/${b.business_id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-teal text-xs font-medium hover:underline"
                         >
-                          Preview →
+                          {b.demo_url ? "Live site →" : "Preview page →"}
                         </a>
-                        {b.demo_approved ? (
-                          <span className="text-emerald-700 text-xs font-semibold">✓ Page approved</span>
-                        ) : (
-                          <button
-                            disabled={busy}
-                            onClick={() => approvePage(b.business_id, true)}
-                            className="text-xs font-semibold bg-teal-bright hover:bg-teal text-white rounded-md px-2 py-1 disabled:opacity-50"
-                          >
-                            Approve page
-                          </button>
-                        )}
+                        {b.demo_url &&
+                          (b.demo_approved ? (
+                            <span className="text-emerald-700 text-xs font-semibold">✓ Page approved</span>
+                          ) : (
+                            <button
+                              disabled={busy}
+                              onClick={() => approvePage(b.business_id, true)}
+                              className="text-xs font-semibold bg-teal-bright hover:bg-teal text-white rounded-md px-2 py-1 disabled:opacity-50"
+                            >
+                              Approve page
+                            </button>
+                          ))}
                       </div>
+                    ) : b.approval_status === "approved" ? (
+                      <span className="text-text-muted text-xs">Building page…</span>
                     ) : (
                       <span className="text-text-muted text-xs">—</span>
                     )}

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getJob, getBusinessesForJob } from "@/lib/data";
 import { JobStatusBadge } from "@/components/StatusBadge";
 import BusinessTable from "@/components/BusinessTable";
+import AutoRefresh from "@/components/AutoRefresh";
 
 
 export default async function JobDetailPage({
@@ -20,6 +21,7 @@ export default async function JobDetailPage({
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      <AutoRefresh status={job.status} />
       <Link href="/jobs" className="text-teal text-sm font-medium hover:underline">
         ← All runs
       </Link>
